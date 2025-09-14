@@ -22,8 +22,8 @@ export function LoginForm() {
       return;
     }
 
-    const success = await login(email, password);
-    if (!success) {
+    const { error } = await login(email, password);
+    if (error) {
       setError('Email ou senha incorretos');
     }
   };
