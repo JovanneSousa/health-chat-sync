@@ -55,16 +55,7 @@ serve(async (req) => {
     const results = [];
 
     for (const user of demoUsers) {
-      // Check if user already exists
-      const { data: existingUser } = await supabaseClient.auth.admin.getUserByEmail(user.email);
-      
-      if (existingUser.user) {
-        console.log(`User ${user.email} already exists, skipping...`);
-        results.push({ email: user.email, status: 'already_exists' });
-        continue;
-      }
-
-      // Create user with admin API
+      // Try to create user directly; if it already exists, record and continue
       const { data, error } = await supabaseClient.auth.admin.createUser({
         email: user.email,
         password: user.password,
@@ -76,8 +67,14 @@ serve(async (req) => {
       });
 
       if (error) {
+        const msg = (error as any)?.message?.toLowerCase?.() || '';
+        if (msg.includes('already registered') || msg.includes('already exists') || (error as any)?.status === 422) {
+          console.log(`User ${user.email} already exists, skipping...`);
+          results.push({ email: user.email, status: 'already_exists' });
+          continue;
+        }
         console.error(`Error creating user ${user.email}:`, error);
-        results.push({ email: user.email, status: 'error', error: error.message });
+        results.push({ email: user.email, status: 'error', error: (error as any)?.message || 'unknown_error' });
       } else {
         console.log(`Successfully created user ${user.email}`);
         results.push({ email: user.email, status: 'created', id: data.user?.id });
