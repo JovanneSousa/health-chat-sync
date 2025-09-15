@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Stethoscope, UserCheck, Shield, Users } from 'lucide-react';
 
 export function LoginForm() {
@@ -25,6 +26,23 @@ export function LoginForm() {
     const { error } = await login(email, password);
     if (error) {
       setError('Email ou senha incorretos');
+    }
+  };
+
+  const createDemoUsers = async () => {
+    setError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('create-demo-users');
+      
+      if (error) {
+        setError('Erro ao criar usuários demo: ' + error.message);
+      } else if (data?.success) {
+        setError('Usuários demo criados com sucesso! Tente fazer login novamente.');
+      } else {
+        setError('Erro ao criar usuários demo: ' + (data?.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      setError('Erro ao conectar com o servidor');
     }
   };
 
@@ -101,6 +119,20 @@ export function LoginForm() {
                 )}
               </Button>
             </form>
+            
+            <div className="mt-4 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={createDemoUsers}
+                type="button"
+              >
+                Criar Contas Demo
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Clique para criar as contas de demonstração se ainda não existirem
+              </p>
+            </div>
           </CardContent>
         </Card>
 
