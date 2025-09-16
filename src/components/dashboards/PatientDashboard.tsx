@@ -1,11 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConversations } from '@/hooks/useConversations';
 import { Calendar, MessageCircle, FileText, Clock, LogOut } from 'lucide-react';
 
 export function PatientDashboard() {
   const { user, logout } = useAuth();
+  const { createConversation, getPatientConversations, isLoading } = useConversations();
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadRecentActivity();
+  }, []);
+
+  const loadRecentActivity = async () => {
+    const conversations = await getPatientConversations();
+    
+    // Transform conversations into activity items
+    const activities = conversations.slice(0, 3).map(conv => ({
+      id: conv.id,
+      type: 'message',
+      title: 'Conversa iniciada',
+      subtitle: conv.title,
+      date: new Date(conv.created_at).toLocaleDateString('pt-BR'),
+      time: new Date(conv.created_at).toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    }));
+
+    setRecentActivity(activities);
+  };
+
+  const handleStartChat = async () => {
+    const conversation = await createConversation();
+    if (conversation) {
+      // Reload recent activity to show the new conversation
+      loadRecentActivity();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -43,8 +77,12 @@ export function PatientDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full">
-                Iniciar Chat
+              <Button 
+                className="w-full" 
+                onClick={handleStartChat}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Iniciando...' : 'Iniciar Chat'}
               </Button>
             </CardContent>
           </Card>
@@ -92,20 +130,21 @@ export function PatientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Consulta agendada</p>
-                    <p className="text-xs text-muted-foreground">15/03/2024 às 14:30</p>
+                {recentActivity.length > 0 ? (
+                  recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                      <MessageCircle className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground">{activity.date} às {activity.time}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">Nenhuma atividade recente</p>
                   </div>
-                </div>
-                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
-                  <MessageCircle className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Mensagem enviada</p>
-                    <p className="text-xs text-muted-foreground">12/03/2024 às 10:15</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
