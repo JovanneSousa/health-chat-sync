@@ -19,7 +19,7 @@ export type Database = {
           attendant_id: string | null
           created_at: string
           id: string
-          patient_id: string | null
+          patient_id: string
           priority: string
           status: string
           title: string
@@ -29,7 +29,7 @@ export type Database = {
           attendant_id?: string | null
           created_at?: string
           id?: string
-          patient_id?: string | null
+          patient_id: string
           priority?: string
           status?: string
           title: string
@@ -39,7 +39,7 @@ export type Database = {
           attendant_id?: string | null
           created_at?: string
           id?: string
-          patient_id?: string | null
+          patient_id?: string
           priority?: string
           status?: string
           title?: string
