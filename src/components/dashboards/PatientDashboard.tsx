@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConversations } from '@/hooks/useConversations';
 import { Calendar, MessageCircle, FileText, Clock, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function PatientDashboard() {
   const { user, logout } = useAuth();
   const { createConversation, getPatientConversations, isLoading } = useConversations();
+  const navigate = useNavigate();
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {

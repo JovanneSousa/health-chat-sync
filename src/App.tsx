@@ -9,6 +9,7 @@ import { RoleBasedDashboard } from "@/components/RoleBasedDashboard";
 import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<RoleBasedDashboard />} />
         <Route path="/legacy" element={<Index />} />
+        <Route path="/chat/:id" element={<Chat />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
