@@ -21,8 +21,6 @@ export function useConversations() {
     setIsLoading(true);
     
     try {
-      console.log('Creating conversation for user:', user.id);
-      
       const { data, error } = await supabase
         .from('conversations')
         .insert({
@@ -34,16 +32,11 @@ export function useConversations() {
         .select()
         .single();
 
-      console.log('Conversation creation result:', { data, error });
-
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       // Create initial message
       if (data) {
-        const messageResult = await supabase
+        await supabase
           .from('messages')
           .insert({
             conversation_id: data.id,
@@ -51,8 +44,6 @@ export function useConversations() {
             content: 'Olá! Preciso de ajuda.',
             message_type: 'text'
           });
-          
-        console.log('Message creation result:', messageResult);
       }
 
       toast({
