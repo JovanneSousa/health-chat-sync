@@ -3,65 +3,75 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMetrics } from '@/hooks/useMetrics';
+import { ConversationSidebar } from '@/components/ConversationSidebar';
 import { MessageCircle, Users, Clock, CheckCircle, LogOut, AlertCircle } from 'lucide-react';
 
 export function AttendantDashboard() {
   const { user, logout } = useAuth();
+  const { metrics, isLoading } = useMetrics();
 
   const stats = [
-    { label: 'Conversas Ativas', value: '12', icon: MessageCircle, color: 'bg-primary' },
-    { label: 'Pacientes Atendidos Hoje', value: '28', icon: Users, color: 'bg-secondary' },
-    { label: 'Tempo Médio Resposta', value: '2.5min', icon: Clock, color: 'bg-warning' },
-    { label: 'Resoluções', value: '24', icon: CheckCircle, color: 'bg-success' }
+    { label: 'Conversas Ativas', value: metrics.activeConversations.toString(), icon: MessageCircle, color: 'bg-primary' },
+    { label: 'Resolvidas Hoje', value: metrics.resolvedToday.toString(), icon: CheckCircle, color: 'bg-success' },
+    { label: 'Tempo Médio Resposta', value: `${metrics.avgResponseTimeMinutes}min`, icon: Clock, color: 'bg-warning' },
+    { label: 'Pendentes', value: metrics.pendingConversations.toString(), icon: AlertCircle, color: 'bg-secondary' }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="bg-white shadow-card border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="text-2xl">{user?.avatar}</div>
-              <div>
-                <h1 className="text-lg font-semibold">Olá, {user?.name}</h1>
-                <p className="text-sm text-muted-foreground">Painel do Atendente</p>
+    <div className="min-h-screen bg-gradient-subtle flex">
+      {/* Conversations Sidebar */}
+      <ConversationSidebar />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-card border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl">{user?.avatar}</div>
+                <div>
+                  <h1 className="text-lg font-semibold">Olá, {user?.name}</h1>
+                  <p className="text-sm text-muted-foreground">Painel do Atendente</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Badge variant="secondary" className="flex items-center">
+                  <div className="w-2 h-2 bg-success rounded-full mr-2"></div>
+                  Online
+                </Badge>
+                <Button variant="outline" onClick={logout}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="secondary" className="flex items-center">
-                <div className="w-2 h-2 bg-success rounded-full mr-2"></div>
-                Online
-              </Badge>
-              <Button variant="outline" onClick={logout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat) => (
-            <Card key={stat.label} className="shadow-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+        {/* Main Content */}
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat) => (
+              <Card key={stat.label} className="shadow-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                      <p className="text-2xl font-bold">
+                        {isLoading ? '...' : stat.value}
+                      </p>
+                    </div>
+                    <div className={`p-3 rounded-full ${stat.color} text-white`}>
+                      <stat.icon className="w-6 h-6" />
+                    </div>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.color} text-white`}>
-                    <stat.icon className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Active Conversations */}
@@ -156,8 +166,9 @@ export function AttendantDashboard() {
               </ul>
             </CardContent>
           </Card>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

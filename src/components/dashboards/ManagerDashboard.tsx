@@ -3,122 +3,136 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMetrics } from '@/hooks/useMetrics';
+import { ConversationSidebar } from '@/components/ConversationSidebar';
 import { BarChart3, Users, Settings, Shield, LogOut, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 
 export function ManagerDashboard() {
   const { user, logout } = useAuth();
-
-  const teamStats = [
-    { name: 'João Santos', status: 'online', conversations: 12, avgResponse: '2.5min', resolved: 24 },
-    { name: 'Maria Oliveira', status: 'online', conversations: 8, avgResponse: '3.1min', resolved: 18 },
-    { name: 'Pedro Silva', status: 'away', conversations: 5, avgResponse: '4.2min', resolved: 15 }
-  ];
+  const { metrics: realMetrics, isLoading } = useMetrics();
 
   const metrics = [
-    { label: 'Total de Conversas', value: '245', change: '+12%', icon: BarChart3 },
-    { label: 'Tempo Médio de Resposta', value: '3.2min', change: '-5%', icon: Clock },
-    { label: 'Taxa de Resolução', value: '94%', change: '+2%', icon: CheckCircle },
-    { label: 'Satisfação do Cliente', value: '4.8/5', change: '+0.3', icon: TrendingUp }
+    { label: 'Total de Conversas', value: realMetrics.totalConversations.toString(), change: '+12%', icon: BarChart3 },
+    { label: 'Tempo Médio de Resposta', value: `${realMetrics.avgResponseTimeMinutes}min`, change: '-5%', icon: Clock },
+    { label: 'Taxa de Resolução', value: `${Math.floor((realMetrics.resolvedToday / (realMetrics.totalConversations || 1)) * 100)}%`, change: '+2%', icon: CheckCircle },
+    { label: 'Satisfação do Cliente', value: `${realMetrics.satisfactionRate}%`, change: '+0.3', icon: TrendingUp }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="bg-white shadow-card border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="text-2xl">{user?.avatar}</div>
-              <div>
-                <h1 className="text-lg font-semibold">Olá, {user?.name}</h1>
-                <p className="text-sm text-muted-foreground">Painel Gerencial</p>
+    <div className="min-h-screen bg-gradient-subtle flex">
+      {/* Conversations Sidebar */}
+      <ConversationSidebar />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-card border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl">{user?.avatar}</div>
+                <div>
+                  <h1 className="text-lg font-semibold">Olá, {user?.name}</h1>
+                  <p className="text-sm text-muted-foreground">Painel Gerencial</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configurações
+                </Button>
+                <Button variant="outline" onClick={logout}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Configurações
-              </Button>
-              <Button variant="outline" onClick={logout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics.map((metric) => (
-            <Card key={metric.label} className="shadow-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
-                    <p className="text-2xl font-bold">{metric.value}</p>
-                    <p className="text-sm text-success">{metric.change}</p>
+        {/* Main Content */}
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Metrics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {metrics.map((metric) => (
+              <Card key={metric.label} className="shadow-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
+                      <p className="text-2xl font-bold">
+                        {isLoading ? '...' : metric.value}
+                      </p>
+                      <p className="text-sm text-success">{metric.change}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-primary text-white">
+                      <metric.icon className="w-6 h-6" />
+                    </div>
                   </div>
-                  <div className="p-3 rounded-full bg-primary text-white">
-                    <metric.icon className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Team Performance */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Performance da Equipe</CardTitle>
-              <CardDescription>
-                Status e métricas em tempo real dos atendentes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {teamStats.map((member) => (
-                  <div key={member.name} className="p-4 rounded-lg border bg-card">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="text-lg">👨‍💼</div>
-                        <div>
-                          <p className="font-medium">{member.name}</p>
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-2 h-2 rounded-full ${
-                              member.status === 'online' ? 'bg-success' : 'bg-warning'
-                            }`}></div>
-                            <span className="text-sm text-muted-foreground capitalize">
-                              {member.status}
-                            </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Team Performance */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Performance da Equipe</CardTitle>
+                <CardDescription>
+                  Status e métricas em tempo real dos atendentes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {isLoading ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Carregando estatísticas da equipe...
+                    </div>
+                  ) : realMetrics.attendantStats.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Nenhum atendente encontrado
+                    </div>
+                  ) : (
+                    realMetrics.attendantStats.map((member) => (
+                      <div key={member.id} className="p-4 rounded-lg border bg-card">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="text-lg">👨‍💼</div>
+                            <div>
+                              <p className="font-medium">{member.name}</p>
+                              <div className="flex items-center space-x-2">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  member.isOnline ? 'bg-success' : 'bg-warning'
+                                }`}></div>
+                                <span className="text-sm text-muted-foreground">
+                                  {member.isOnline ? 'Online' : 'Ausente'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Conversas</p>
+                            <p className="font-medium">{member.conversations}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Resp. Média</p>
+                            <p className="font-medium">{member.avgResponseMinutes}min</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Resolvidas</p>
+                            <p className="font-medium">{member.resolvedToday}</p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Conversas</p>
-                        <p className="font-medium">{member.conversations}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Resp. Média</p>
-                        <p className="font-medium">{member.avgResponse}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Resolvidas</p>
-                        <p className="font-medium">{member.resolved}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
           {/* Management Actions */}
           <Card className="shadow-card">
@@ -202,8 +216,9 @@ export function ManagerDashboard() {
               </ul>
             </CardContent>
           </Card>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

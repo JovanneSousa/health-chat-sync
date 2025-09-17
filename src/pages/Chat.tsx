@@ -35,29 +35,42 @@ const Chat: React.FC = () => {
       urgent: 'high',
     };
 
+    // Get patient name from the conversation
+    let patientName = 'Paciente';
+    if (user?.role === 'patient') {
+      patientName = user.name || 'Você';
+    } else {
+      // For attendants/managers, we need to get patient name from DB
+      // For now, using a generic name since we don't have patient info loaded
+      patientName = 'Paciente';
+    }
+
     return {
       id: conversation.id,
-      patientName: user?.name || 'Você',
+      patientName,
       channel: 'whatsapp',
       lastMessage: '',
       timestamp: new Date(conversation.updated_at || conversation.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       status: statusMap[conversation.status] || 'in-progress',
       priority: priorityMap[conversation.priority] || 'medium',
-      attendant: undefined,
+      attendant: conversation.attendant_id ? 'Atendente' : undefined,
       unreadCount: 0,
     };
-  }, [conversation, user?.name]);
+  }, [conversation, user]);
 
   const uiMessages = useMemo(() => {
-    if (!conversation) return [];
+    if (!conversation || !user) return [];
     return messages.map((m) => ({
       id: m.id,
       text: m.content,
       timestamp: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      sender: (m.sender_id === conversation.patient_id ? 'patient' : 'attendant') as 'patient' | 'attendant',
+      sender: (m.sender_id === user.id ? 
+        (user.role === 'patient' ? 'patient' : 'attendant') : 
+        (user.role === 'patient' ? 'attendant' : 'patient')
+      ) as 'patient' | 'attendant',
       type: 'text' as const,
     }));
-  }, [messages, conversation]);
+  }, [messages, conversation, user]);
 
   if (isLoading || !uiConversation) {
     return (
