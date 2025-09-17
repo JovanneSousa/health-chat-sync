@@ -38,9 +38,13 @@ export function PatientDashboard() {
   const handleStartChat = async () => {
     const conversation = await createConversation();
     if (conversation) {
-      // Reload recent activity to show the new conversation
-      loadRecentActivity();
+      // Navigate to the new chat
+      navigate(`/chat/${conversation.id}`);
     }
+  };
+
+  const handleActivityClick = (activityId: string) => {
+    navigate(`/chat/${activityId}`);
   };
 
   return (
@@ -134,7 +138,11 @@ export function PatientDashboard() {
               <div className="space-y-4">
                 {recentActivity.length > 0 ? (
                   recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                    <div 
+                      key={activity.id} 
+                      className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50 hover:bg-muted/70 cursor-pointer transition-colors"
+                      onClick={() => handleActivityClick(activity.id)}
+                    >
                       <MessageCircle className="w-4 h-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm font-medium">{activity.title}</p>
