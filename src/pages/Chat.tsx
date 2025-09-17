@@ -4,6 +4,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import type { Conversation as UIConversation } from '@/components/ConversationList';
 import { useChat } from '@/hooks/useChat';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 const Chat: React.FC = () => {
@@ -68,6 +69,7 @@ const Chat: React.FC = () => {
         (user.role === 'patient' ? 'patient' : 'attendant') : 
         (user.role === 'patient' ? 'attendant' : 'patient')
       ) as 'patient' | 'attendant',
+      senderName: m.sender_id === user.id ? user.name : (user.role === 'patient' ? 'Atendente' : 'Paciente'),
       type: 'text' as const,
     }));
   }, [messages, conversation, user]);
@@ -81,6 +83,24 @@ const Chat: React.FC = () => {
   }
 
   const handleSend = (text: string) => sendMessage(text);
+
+  const handleResolve = async () => {
+    if (!conversation || !user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ status: 'resolved' })
+        .eq('id', conversation.id);
+      
+      if (error) throw error;
+      
+      // Navigate back after resolving
+      setTimeout(() => navigate(-1), 1000);
+    } catch (error) {
+      console.error('Erro ao resolver conversa:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -102,6 +122,8 @@ const Chat: React.FC = () => {
             conversation={uiConversation}
             messages={uiMessages}
             onSendMessage={handleSend}
+            onResolveConversation={user?.role !== 'patient' ? handleResolve : undefined}
+            userRole={user?.role}
           />
         </div>
       </main>

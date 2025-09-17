@@ -14,7 +14,9 @@ import {
   Phone,
   Video,
   Calendar,
-  FileText
+  FileText,
+  CheckCircle,
+  X
 } from "lucide-react";
 import type { Conversation } from "./ConversationList";
 
@@ -23,6 +25,7 @@ interface Message {
   text: string;
   timestamp: string;
   sender: "patient" | "attendant";
+  senderName?: string;
   type: "text" | "image" | "file";
 }
 
@@ -30,9 +33,17 @@ interface ChatInterfaceProps {
   conversation: Conversation;
   messages: Message[];
   onSendMessage: (text: string) => void;
+  onResolveConversation?: () => void;
+  userRole?: string;
 }
 
-export function ChatInterface({ conversation, messages, onSendMessage }: ChatInterfaceProps) {
+export function ChatInterface({ 
+  conversation, 
+  messages, 
+  onSendMessage, 
+  onResolveConversation,
+  userRole 
+}: ChatInterfaceProps) {
   const [messageText, setMessageText] = useState("");
 
   const handleSend = () => {
@@ -100,6 +111,17 @@ export function ChatInterface({ conversation, messages, onSendMessage }: ChatInt
             <Button variant="ghost" size="sm">
               <FileText className="w-4 h-4" />
             </Button>
+            {userRole !== 'patient' && conversation.status !== 'resolved' && onResolveConversation && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onResolveConversation}
+                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Resolver
+              </Button>
+            )}
             <Button variant="ghost" size="sm">
               <MoreVertical className="w-4 h-4" />
             </Button>
@@ -135,6 +157,16 @@ export function ChatInterface({ conversation, messages, onSendMessage }: ChatInt
                     : "bg-primary text-primary-foreground"
                 )}
               >
+                {message.senderName && (
+                  <p className={cn(
+                    "text-xs font-semibold mb-1",
+                    message.sender === "patient" 
+                      ? "text-muted-foreground" 
+                      : "text-primary-foreground/90"
+                  )}>
+                    {message.senderName}
+                  </p>
+                )}
                 <p className="text-sm">{message.text}</p>
                 <span className={cn(
                   "text-xs mt-1 block",
