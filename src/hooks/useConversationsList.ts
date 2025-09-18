@@ -132,12 +132,21 @@ export function useConversationsList() {
 
       // Subscribe to realtime updates
       const channel = supabase
-        .channel('conversations_list')
+        .channel('conversations_list_updates')
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'conversations',
         }, () => {
+          console.log('Conversation changed, updating list...');
+          fetchConversations();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+        }, () => {
+          console.log('Message changed, updating conversation list...');
           fetchConversations();
         })
         .subscribe();

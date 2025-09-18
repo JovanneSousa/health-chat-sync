@@ -120,7 +120,16 @@ export function useChat(conversationId: string | undefined) {
     }
     
     try {
-      console.log('Sending message:', { conversationId, userId: user.id, content: text });
+      console.log('Sending message:', { conversationId, userId: user.id, content: text, userRole: user.role });
+      
+      // If user is attendant and conversation is not assigned, assign it to them
+      if (user.role === 'attendant' && conversation && !conversation.attendant_id) {
+        console.log('Assigning conversation to attendant:', user.id);
+        await supabase
+          .from('conversations')
+          .update({ attendant_id: user.id })
+          .eq('id', conversationId);
+      }
       
       const { data, error } = await supabase.from('messages').insert({
         conversation_id: conversationId,

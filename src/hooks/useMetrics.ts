@@ -147,6 +147,31 @@ export function useMetrics() {
   useEffect(() => {
     if (user) {
       fetchMetrics();
+
+      // Subscribe to realtime updates for conversations
+      const channel = supabase
+        .channel('metrics_updates')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        }, () => {
+          console.log('Conversation changed, updating metrics...');
+          fetchMetrics();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+        }, () => {
+          console.log('Message changed, updating metrics...');
+          fetchMetrics();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
