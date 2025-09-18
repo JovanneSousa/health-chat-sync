@@ -85,15 +85,25 @@ const Chat: React.FC = () => {
   const handleSend = (text: string) => sendMessage(text);
 
   const handleResolve = async () => {
-    if (!conversation || !user) return;
+    if (!conversation || !user) {
+      console.error('Missing conversation or user:', { conversation: !!conversation, user: !!user });
+      return;
+    }
     
     try {
+      console.log('Resolving conversation:', conversation.id);
+      
       const { error } = await supabase
         .from('conversations')
         .update({ status: 'resolved' })
         .eq('id', conversation.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+      
+      console.log('Conversation resolved successfully');
       
       // Navigate back after resolving
       setTimeout(() => navigate(-1), 1000);

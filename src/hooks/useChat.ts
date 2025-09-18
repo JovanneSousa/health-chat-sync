@@ -62,9 +62,9 @@ export function useChat(conversationId: string | undefined) {
         if (msgErr) throw msgErr;
         setMessages((msgs || []) as DbMessage[]);
 
-        // Realtime updates for new messages
+        // Realtime updates for new messages and conversation changes
         channel = supabase
-          .channel(`messages_conversation_${conversationId}`)
+          .channel(`chat_conversation_${conversationId}`)
           .on(
             'postgres_changes',
             {
@@ -74,7 +74,21 @@ export function useChat(conversationId: string | undefined) {
               filter: `conversation_id=eq.${conversationId}`,
             },
             (payload) => {
+              console.log('New message received:', payload);
               setMessages((prev) => [...prev, payload.new as DbMessage]);
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'conversations',
+              filter: `id=eq.${conversationId}`,
+            },
+            (payload) => {
+              console.log('Conversation updated:', payload);
+              setConversation(payload.new as DbConversation);
             }
           )
           .subscribe();
@@ -100,15 +114,34 @@ export function useChat(conversationId: string | undefined) {
   }, [conversationId, toast]);
 
   const sendMessage = async (text: string) => {
-    if (!user || !conversationId) return;
+    if (!user || !conversationId) {
+      console.error('Missing user or conversationId:', { user: !!user, conversationId });
+      return;
+    }
+    
     try {
-      const { error } = await supabase.from('messages').insert({
+      console.log('Sending message:', { conversationId, userId: user.id, content: text });
+      
+      const { data, error } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: user.id,
         content: text,
         message_type: 'text',
-      });
-      if (error) throw error;
+      }).select();
+      
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+      
+      console.log('Message sent successfully:', data);
+      
+      // Update conversation's updated_at timestamp
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversationId);
+        
     } catch (e) {
       console.error('Erro ao enviar mensagem:', e);
       toast({
