@@ -23,10 +23,8 @@ export function useConversationsList() {
     try {
       setIsLoading(true);
       
-      let query = supabase.from('conversations').select(`
-        *,
-        patient:profiles!conversations_patient_id_fkey(name)
-      `);
+      // Use a basic select and join with profiles manually
+      let query = supabase.from('conversations').select('*');
 
       // Filter based on user role
       if (user.role === 'attendant') {
@@ -42,22 +40,29 @@ export function useConversationsList() {
 
       if (error) throw error;
 
-      // Get last message for each conversation
+      // Get last message and patient name for each conversation
       const conversationsWithDetails = await Promise.all(
         (data || []).map(async (conv) => {
-          const { data: lastMessage } = await supabase
-            .from('messages')
-            .select('content, created_at')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          const [lastMessageResult, patientResult] = await Promise.all([
+            supabase
+              .from('messages')
+              .select('content, created_at')
+              .eq('conversation_id', conv.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', conv.patient_id)
+              .single()
+          ]);
 
           return {
             ...conv,
-            patient_name: conv.patient?.name || 'Paciente',
-            last_message: lastMessage?.content || 'Nenhuma mensagem ainda',
-            last_message_at: lastMessage?.created_at,
+            patient_name: patientResult.data?.name || 'Paciente',
+            last_message: lastMessageResult.data?.content || 'Nenhuma mensagem ainda',
+            last_message_at: lastMessageResult.data?.created_at,
             unread_count: 0, // Mock for now
           } as ConversationWithPatient;
         })
