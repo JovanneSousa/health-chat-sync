@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,87 +31,102 @@ export function useChat(conversationId: string | undefined) {
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!conversationId) return;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        const { data: conv, error: convErr } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('id', conversationId)
-          .maybeSingle();
-        if (convErr) throw convErr;
-        if (!conv) {
-          toast({
-            title: 'Conversa não encontrada',
-            description: 'Verifique o link e tente novamente.',
-            variant: 'destructive',
-          });
-          return;
-        }
-        setConversation(conv as DbConversation);
-
-        const { data: msgs, error: msgErr } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true });
-        if (msgErr) throw msgErr;
-        setMessages((msgs || []) as DbMessage[]);
-
-        // Realtime updates for new messages and conversation changes
-        channel = supabase
-          .channel(`chat_conversation_${conversationId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'messages',
-              filter: `conversation_id=eq.${conversationId}`,
-            },
-            (payload) => {
-              console.log('New message received:', payload);
-              setMessages((prev) => [...prev, payload.new as DbMessage]);
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'conversations',
-              filter: `id=eq.${conversationId}`,
-            },
-            (payload) => {
-              console.log('Conversation updated:', payload);
-              setConversation(payload.new as DbConversation);
-            }
-          )
-          .subscribe();
-      } catch (e) {
-        console.error('Erro ao carregar chat:', e);
+    
+    try {
+      setIsLoading(true);
+      const { data: conv, error: convErr } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .maybeSingle();
+      if (convErr) throw convErr;
+      if (!conv) {
         toast({
-          title: 'Erro ao carregar chat',
-          description: 'Tente novamente em instantes.',
+          title: 'Conversa não encontrada',
+          description: 'Verifique o link e tente novamente.',
           variant: 'destructive',
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
+      setConversation(conv as DbConversation);
 
-    load();
+      const { data: msgs, error: msgErr } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      if (msgErr) throw msgErr;
+      setMessages((msgs || []) as DbMessage[]);
+    } catch (e) {
+      console.error('Erro ao carregar chat:', e);
+      toast({
+        title: 'Erro ao carregar chat',
+        description: 'Tente novamente em instantes.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [conversationId, toast]);
+
+  // Load data on mount and when conversationId changes
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Setup realtime subscription
+  useEffect(() => {
+    if (!conversationId) return;
+
+    console.log(`Setting up realtime for conversation ${conversationId}`);
+    
+    const channel = supabase
+      .channel(`chat_conversation_${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          console.log('New message received via realtime:', payload);
+          const newMessage = payload.new as DbMessage;
+          setMessages((prev) => {
+            // Check if message already exists to prevent duplicates
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              console.log('Message already exists, skipping duplicate');
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `id=eq.${conversationId}`,
+        },
+        (payload) => {
+          console.log('Conversation updated via realtime:', payload);
+          setConversation(payload.new as DbConversation);
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Realtime subscription status for conversation ${conversationId}:`, status);
+      });
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      console.log(`Cleaning up realtime for conversation ${conversationId}`);
+      supabase.removeChannel(channel);
     };
-  }, [conversationId, toast]);
+  }, [conversationId]);
 
   const sendMessage = async (text: string) => {
     if (!user || !conversationId) {

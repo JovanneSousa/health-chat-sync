@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMetrics } from '@/hooks/useMetrics';
 import { ConversationSidebar } from '@/components/ConversationSidebar';
+import { PriorityConversations } from '@/components/PriorityConversations';
 import { MessageCircle, Users, Clock, CheckCircle, LogOut, AlertCircle } from 'lucide-react';
 
 export function AttendantDashboard() {
@@ -74,7 +75,7 @@ export function AttendantDashboard() {
           </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Active Conversations */}
+          {/* Priority Conversations */}
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle>Conversas Prioritárias</CardTitle>
@@ -83,40 +84,7 @@ export function AttendantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5">
-                  <div className="flex items-center space-x-3">
-                    <AlertCircle className="w-4 h-4 text-destructive" />
-                    <div>
-                      <p className="font-medium">Maria Santos</p>
-                      <p className="text-sm text-muted-foreground">Dor no peito - Urgente</p>
-                    </div>
-                  </div>
-                  <Badge variant="destructive">Urgente</Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg border border-warning/20 bg-warning/5">
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-4 h-4 text-warning" />
-                    <div>
-                      <p className="font-medium">João Silva</p>
-                      <p className="text-sm text-muted-foreground">Reagendamento de consulta</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline">Pendente</Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex items-center space-x-3">
-                    <MessageCircle className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Ana Costa</p>
-                      <p className="text-sm text-muted-foreground">Resultado de exame</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary">Normal</Badge>
-                </div>
-              </div>
+              <PriorityConversations />
             </CardContent>
           </Card>
 

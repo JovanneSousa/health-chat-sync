@@ -61,17 +61,29 @@ const Chat: React.FC = () => {
 
   const uiMessages = useMemo(() => {
     if (!conversation || !user) return [];
-    return messages.map((m) => ({
-      id: m.id,
-      text: m.content,
-      timestamp: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      sender: (m.sender_id === user.id ? 
-        (user.role === 'patient' ? 'patient' : 'attendant') : 
-        (user.role === 'patient' ? 'attendant' : 'patient')
-      ) as 'patient' | 'attendant',
-      senderName: m.sender_id === user.id ? user.name : (user.role === 'patient' ? 'Atendente' : 'Paciente'),
-      type: 'text' as const,
-    }));
+    return messages.map((m) => {
+      // Determine if this message is from the current user
+      const isOwnMessage = m.sender_id === user.id;
+      
+      // For patients: their messages are 'patient', others are 'attendant'
+      // For attendants/managers: messages from patients are 'patient', from attendants/managers are 'attendant'
+      let sender: 'patient' | 'attendant';
+      if (user.role === 'patient') {
+        sender = isOwnMessage ? 'patient' : 'attendant';
+      } else {
+        // For attendants/managers, need to check if sender is patient
+        sender = m.sender_id === conversation.patient_id ? 'patient' : 'attendant';
+      }
+      
+      return {
+        id: m.id,
+        text: m.content,
+        timestamp: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        sender,
+        senderName: isOwnMessage ? user.name : (sender === 'patient' ? 'Paciente' : 'Atendente'),
+        type: 'text' as const,
+      };
+    });
   }, [messages, conversation, user]);
 
   if (isLoading || !uiConversation) {
