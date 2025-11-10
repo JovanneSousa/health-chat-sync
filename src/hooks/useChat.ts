@@ -160,6 +160,16 @@ export function useChat(conversationId: string | undefined) {
       
       console.log('Message sent successfully:', data);
       
+      // Add message immediately to state for instant feedback
+      if (data && data[0]) {
+        setMessages((prev) => {
+          if (prev.some(msg => msg.id === data[0].id)) {
+            return prev;
+          }
+          return [...prev, data[0] as DbMessage];
+        });
+      }
+      
       // Update conversation's updated_at timestamp
       await supabase
         .from('conversations')
